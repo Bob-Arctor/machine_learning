@@ -45,3 +45,9 @@ def get_total_categorical_features(dataframe):
                 break
         total += int(check) * int(not_empty)
     return total
+    
+    
+def split_complete_data(df):
+    #returns set with complete samples 
+    #and a set of samples with some of the features missing    
+    return df[pd.isnull(df).any(axis=1).apply(np.logical_not)], df[pd.isnull(df).any(axis=1)]

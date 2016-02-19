@@ -1,86 +1,98 @@
 <RootWidget>:
-    TabbedPanel:
-        tab_width: 120.0
-        do_default_tab: False
-        
-        TabbedPanelItem:
-            text: 'Load...'
-            BoxLayout:
-            	orientation: 'horizontal'
-            	BoxLayout:
-            		orientation: 'vertical' 
-                    FileChooserListView:
-            	    	id: filechooser_samples
-            	    	filters: ['*.csv']
-            	    	path: '~/Documents/datasets'
-                    BoxLayout:
-            			size_hint_y: None
-                        height: 30
-             	   	Button:
-              	  	    text: 'Load samples'
-               	 	    on_release: root.load_samples(filechooser_samples.path, filechooser_samples.selection)
-				
+	TabbedPanel:
+		tab_width: 120.0
+		do_default_tab: False
+		TabbedPanelItem:
+			text: 'Load...'
+			BoxLayout:
+				orientation: 'horizontal'
 				BoxLayout:
-            		orientation: 'vertical' 
-                    FileChooserListView:
-            	    	id: filechooser_results
-            	    	filters: ['*.csv']
-            	    	path: '~/Documents/datasets'
-                    BoxLayout:
-            			size_hint_y: None
-                        height: 30
-             	   	Button:
-              	  		text: 'Load results'
-               	 		on_release: root.load_results(filechooser_results.path, filechooser_results.selection)
-        
-        TabbedPanelItem:
-            text: 'Stats'
-            BoxLayout:
-            	orientation: 'vertical'
-                BoxLayout:
-                    height: 20
-                    size_hint_y: None
-            	    Label:
-            		    text: 'samples data'
-            		    bold: True
-            	GridLayout:
-         	   	cols: 2
-        			Label: 
-        				text: 'file:'
-        			Label:
-        				id: lbl_samples_data_file
-        				text: root.samples_data_file
-        			Label:
-        				text: 'total samples'
-        			Label:
-        				id: lbl_total_samples
-        				text: root.total_samples
-        			Label:
-        				text: 'total features'
-        			Label:
-        				id: lbl_total_samples
-        				text: root.total_features
-        			Label:
-        				text: 'samples with missing features'
-        			Label:
-        				id: lbl_total_samples
-        				text: root.samples_with_missing
-        			Label:
-        				text: 'numerical features'
-        			Label:
-        				id: lbl_total_samples
-        				text: root.numerical_features
-        			Label:
-        				text: 'categorical features'
-        			Label:
-        				id: lbl_total_samples
-        				text: root.categorical_features
-        TabbedPanelItem:
-            text: 'Analysis'
-            BoxLayout:
-        TabbedPanelItem:
-            text: 'Training'
-            BoxLayout:
-        TabbedPanelItem:
-            text: 'Prediction'
-            BoxLayout:
+					orientation: 'vertical' 
+					FileChooserListView:
+						id: filechooser_samples
+						filters: ['*.csv']
+					BoxLayout:
+						size_hint_y: None
+						height: 30
+						Button:
+							text: 'Load samples'
+							on_release: root.load_samples(filechooser_samples.path, filechooser_samples.selection)
+				BoxLayout:
+					orientation: 'vertical' 
+					FileChooserListView:
+						id: filechooser_results
+						filters: ['*.csv']
+					BoxLayout:
+						size_hint_y: None
+						height: 30
+						Button:
+							text: 'Load results'
+							on_release: root.load_results(filechooser_results.path, filechooser_results.selection)
+		TabbedPanelItem:
+			text: 'Stats'
+			BoxLayout:
+				orientation: 'vertical'
+				BoxLayout:
+					height: 20
+					size_hint_y: None
+					Label:
+						text: 'samples data'
+						bold: True
+				GridLayout:
+					cols: 2
+					Label:
+						text: 'file:'
+					Label:
+						id: lbl_samples_data_file
+						text: root.samples_data_file
+					Label:
+						text: 'total samples'
+					Label:
+						id: lbl_total_samples
+						text: root.total_samples
+					Label:
+						text: 'total features'
+					Label:
+						id: lbl_total_samples
+						text: root.total_features
+					Label:
+						text: 'samples with missing features'
+					Label:
+						id: lbl_total_samples
+						text: root.samples_with_missing
+					Label:
+						text: 'numerical features'
+					Label:
+						id: lbl_total_samples
+						text: root.numerical_features
+					Label:
+						text: 'categorical features'
+					Label:
+						id: lbl_total_samples
+						text: root.categorical_features
+		TabbedPanelItem:
+			text: 'Analysis'
+			BoxLayout:
+				orientation: 'vertical'
+				ScrollView:
+					size_hint: None, None
+					size: 500, 320
+					pos_hint: {'center_x': .5, 'center_y': .5}
+					GridLayout:
+						cols: 1
+						padding: 10
+						spacing: 10
+						height: self.minimum_height
+						size_hint: None, None
+						do_scroll_x: False
+						id: features_list
+		TabbedPanelItem:
+			text: 'Training'
+			BoxLayout:
+		TabbedPanelItem:
+			text: 'Prediction'
+			BoxLayout:
+
+<ScrollButton>
+    size_hint: None, None
+    size: 480, 40
