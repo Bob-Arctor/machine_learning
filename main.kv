@@ -40,6 +40,8 @@
 						bold: True
 				GridLayout:
 					cols: 2
+					row_force_default: True
+					row_default_height: 35
 					Label:
 						text: 'file:'
 					Label:
@@ -73,18 +75,19 @@
 		TabbedPanelItem:
 			text: 'Analysis'
 			BoxLayout:
-				orientation: 'vertical'
+				orientation: 'horizontal'
 				ScrollView:
 					size_hint: None, None
 					size: 500, 320
-					pos_hint: {'center_x': .5, 'center_y': .5}
 					GridLayout:
-						cols: 1
-						padding: 10
-						spacing: 10
+						cols: 2
+						padding: 2
+						spacing: 2
 						height: self.minimum_height
 						size_hint: None, None
 						do_scroll_x: False
+						row_force_default: True
+						row_default_height: 35
 						id: features_list
 		TabbedPanelItem:
 			text: 'Training'
@@ -95,4 +98,3 @@
 
 <ScrollButton>
     size_hint: None, None
-    size: 480, 40

@@ -31,6 +31,7 @@ class RootWidget(FloatLayout):
             self.samples_data_file = os.path.join(path, filename[0])
             self.samples_df = pd.read_csv(self.samples_data_file)
             self.update_samples_stats()
+            self.update_analysis()
         except IndexError:
             popup = Popup(title='File loading error', 
                           content=Label(text='Please select .csv file with sample points'),
@@ -50,7 +51,7 @@ class RootWidget(FloatLayout):
         self.categorical_features = str(Preproc.get_total_categorical_features(self.samples_df))
         
     def update_analysis(self):
-        features_list = root.ids.features_list
+        features_list = self.ids.features_list
         for i in range(30):
             features_list.add_widget(ScrollButton(text=str(i), group='feature'))
 
