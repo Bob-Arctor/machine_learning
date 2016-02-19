@@ -6,15 +6,21 @@ import pandas as pd
 import os
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
+import Preproc
 
 
 class RootWidget(FloatLayout):
+    #data
     samples = ObjectProperty(pd.DataFrame(), force_dispatch=True)
     results = ObjectProperty(pd.DataFrame(), force_dispatch=True)
+    #stats label text fields
     samples_data_file = StringProperty('')
     results_data_file = StringProperty('')
     total_samples = StringProperty('')
     total_features = StringProperty('')
+    samples_with_missing = StringProperty('')
+    numerical_features = StringProperty('')
+    categorical_features = StringProperty('')
 
     def load_samples(self, path, filename):
         try:
@@ -31,12 +37,10 @@ class RootWidget(FloatLayout):
         self.results = pd.read_csv(self.samples_data_file)
 
     def update_samples_stats(self):
-        print(self.samples.shape[0])
-        print(self.samples.shape[1])
         self.total_samples = str(self.samples.shape[0])
         self.total_features = str(self.samples.shape[1])
-        print(self.total_features)
-
+        self.numerical_features = str(Preproc.get_total_numeric_features(self.samples))
+        self.categorical_features = str(Preproc.get_total_categorical_features(self.samples))
 
 class MainApp(App):
     def build(self):
