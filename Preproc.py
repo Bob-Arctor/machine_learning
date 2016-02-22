@@ -45,9 +45,46 @@ def get_total_categorical_features(dataframe):
                 break
         total += int(check) * int(not_empty)
     return total
-    
-    
+
+
 def split_complete_data(df):
-    #returns set with complete samples 
-    #and a set of samples with some of the features missing    
-    return df[pd.isnull(df).any(axis=1).apply(np.logical_not)], df[pd.isnull(df).any(axis=1)]
+    # returns set with complete samples
+    # and a set of samples with some of the features missing
+    complete = df[pd.isnull(df).any(axis=1).apply(np.logical_not)]
+    missing = df[pd.isnull(df).any(axis=1)]
+    return complete, missing
+
+
+def split_features_by_type(df):
+    # boolean df showing where numerics are
+    criteria = df.applymap(np.isreal)
+    numeric_df = df[df.columns[criteria.all().values]]
+    character_df = df[df.columns[~criteria.all().values]]
+    return numeric_df, character_df
+
+
+def is_characteristic_series(series):
+    # checks if series is char or nan
+    var = not series.apply(lambda x: np.isreal(x) and not pd.isnull(x)).any()
+    return var
+
+
+def is_numeric_series(series):
+    # checks if series is numeric or nan
+    return series.apply(lambda x: np.isreal(x)).all()
+
+
+def standardize_df(df):
+    # will return new dataframe shifted to mean and divided by std
+    # mean and std dfs will be passed as second and third result
+    mean_df = df.mean(axis=0)
+    std_df = df.std(axis=0)
+    transformed = df.subtract(mean_df, axis=1)
+    transformed = transformed.divide(std_df, axis=1)
+    return transformed, mean_df, std_df
+
+
+def back_transform(df, mean_df, std_df):
+    original = df.multiply(std_df, axis=1)
+    original = original.add(mean_df, axis=1)
+    return original
