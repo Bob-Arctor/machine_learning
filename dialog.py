@@ -34,7 +34,6 @@ class MyWindowClass(QtGui.QWidget, form_class):
             self.observed_index = indexes[0].column()
             self.update_stats()
             self.repaint_table()
-        self.file_table.item(3, 5).setBackground(QtGui.QColor(100,100,150))
         #for index in sorted(indexes):
         #    print('column %d is selected' % index.column())
             
@@ -111,15 +110,16 @@ class MyWindowClass(QtGui.QWidget, form_class):
             # hide progress bar
             self.progressBar.hide()
             
-    def repaint_table():
+    def repaint_table(self):
         # color observed column yellow       
-        if self.observed_index => 0:
-            for row in xrange(table.rowCount()):
-                item = file_table.item(row, self.observed_index)
+        if self.observed_index >= 0:
+            for row in range(self.file_table.rowCount()):
+                item = self.file_table.item(row, self.observed_index)
                 item.setBackground(QtGui.QBrush(QtCore.Qt.yellow))
                 # text = str(item.text())
                 # if (text.isdigit() and int(text) >= 20) or text == 'WARNING':
-                
+        self.file_table.setAlternatingRowColors(True);
+        self.file_table.setStyleSheet("alternate-background-color: grey;background-color: white;");
 
 
 app = QtGui.QApplication(sys.argv)
