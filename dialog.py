@@ -1,8 +1,13 @@
 import sys
 from PyQt4 import QtCore, QtGui, uic
-from PyQt4.QtGui import QFileDialog, QTableWidgetItem
+from PyQt4.QtGui import QFileDialog, QTableWidgetItem, QMessageBox
 import pandas as pd
 import Preproc as prep
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+#from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg as NavigationToolbar
+import matplotlib.pyplot as plt
+import random
+import seaborn as sns
 
 form_class = uic.loadUiType("main_window.ui")[0]  # Load the UI
 
@@ -16,6 +21,7 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
         self.btn_load.clicked.connect(self.btn_load_clicked)  # Bind the event handlers
         self.btn_select_file.clicked.connect(self.selectFile)
         self.btn_set_observ.clicked.connect(self.clicked_observed)
+        self.feature_table.cellClicked.connect(self.slotItemClicked)
 
         self.filepath = ''
         self.dataset = pd.DataFrame()
@@ -30,17 +36,56 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
         self.char_complete_dataset = pd.DataFrame()
         self.char_missing_dataset = pd.DataFrame()
         self.observed_index = -1
-
+        #set stats to 0
         self.update_stats()
+        #create plots
+        # a figure instance to plot on
+        # self.figure = plt.figure()
+        # self.canvas = FigureCanvas(self.figure)
+        self.btn_plot.clicked.connect(self.plot_features)
+        # self.plot_layout.addWidget(self.canvas)
+
+    def plot_features(self):
+        data = [random.random() for i in range(10)]
+        # ax = self.figure.add_subplot(111)
+        # discards the old graph
+        # ax.hold(False)
+        # plot data
+        # ax.plot(data, 'o-')
+        # refresh canvas
+        # self.canvas.draw()
+        indexes = self.feature_table.selectionModel().selectedRows()
+        print(indexes)
+        print(len(indexes))
+        print(self.observed_index)
+        print(indexes[0].row())
+        if len(indexes) == 1 and self.observed_index >=0 :
+            item = self.feature_table.item(indexes[0].row(), 1)
+            ID = item.text()
+            print(ID)
+            if ID == 'N': # numeric feature
+                # for  numerics we plot histogram and boxplot
+                item = self.feature_table.item(indexes[0].row(), 0)
+                feat = item.text()
+                print(feat)
+                subplot1 = self.mw_1.figure.add_subplot(111)
+                self.dataset.plot(kind="scatter", x=feat, y=feat, ax=subplot1)
+                #self.dataset.boxplot(column=feat, by = self.observed_name, ax=subplot1)
+                # sns.boxplot(x=self.observed_name, y=feat, data=self.dataset, ax=subplot1, palette="PRGn")
+                # sns.stripplot(x=self.observed_name, y=feat, data=self.dataset, jitter=True, edgecolor="gray",ax=subplot1)                
+                # subplot1.set(ylim=(self.dataset[feat].min(), self.dataset[feat].max()))                
+                self.mw_1.draw()
 
     def clicked_observed(self):
         indexes = self.file_table.selectionModel().selectedColumns()
         if len(indexes) == 1:
-            self.set_observed(indexes[0].column())
+            old_ind = self.observed_index       
             self.observed_index = indexes[0].column()
+            self.observed_name = self.dataset.columns[self.observed_index]
+            self.set_observed(self.observed_index)            
             self.split_dataset()
             self.update_stats()
-            self.repaint_table()
+            self.repaint_table(old_ind)
             # for index in sorted(indexes):
             #    print('column %d is selected' % index.column())
 
@@ -132,7 +177,7 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
             # hide progress bar
             self.progressBar.hide()
 
-    def repaint_table(self):
+    def repaint_table(self, old_ind=-1):
         # color observed column yellow       
         if self.observed_index >= 0:
             for row in range(self.file_table.rowCount()):
@@ -152,11 +197,14 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
                     item = QTableWidgetItem(
                         str(self.proc_dataset.columns[row]))  # each item is a QTableWidgetItem
                     self.feature_table.setItem(row, 0, item)
-                    item = QTableWidgetItem( prep.series_type(self.proc_dataset[self.proc_dataset.columns[row]]))
-                    item.setFlags(QtCore.Qt.ItemIsEnabled)
+                    item = QTableWidgetItem( 
+                        prep.series_type(self.proc_dataset[self.proc_dataset.columns[row]])[0:1])
+                    # item.setFlags(QtCore.Qt.ItemIsEnabled)
                     self.feature_table.setItem(row, 1, item)
             # making cells read-only
             self.feature_table.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
+            #making it only possible to select rows
+            self.feature_table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
             # setting header labels
             self.feature_table.setHorizontalHeaderLabels(['Features','Type'])
             # update colorcodes
@@ -165,6 +213,13 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
     def repaint_feature_table(self):
         self.feature_table.setAlternatingRowColors(True)
         self.feature_table.setStyleSheet("alternate-background-color: lightGray;background-color: white;")
+        
+    def slotItemClicked(self, row, col):
+        #item = self.feature_table.item(row, col)
+        #ID = item.text()
+        
+        #QMessageBox.information(self,"QTableWidget Cell Click","Row: " + str(row) + " |Column: " + str(col) + " text: " + ID)
+        return
 
 
 app = QtGui.QApplication(sys.argv)
