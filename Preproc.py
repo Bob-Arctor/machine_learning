@@ -57,7 +57,7 @@ def split_complete_data(df):
 
 def split_features_by_type(df):
     # boolean df showing where numerics are
-    criteria = df.applymap(np.isreal)
+    criteria = df.applymap(lambda x: isinstance(x, (int, float)))
     numeric_df = df[df.columns[criteria.all().values]]
     character_df = df[df.columns[~criteria.all().values]]
     return numeric_df, character_df
@@ -72,6 +72,13 @@ def is_characteristic_series(series):
 def is_numeric_series(series):
     # checks if series is numeric or nan
     return series.apply(lambda x: np.isreal(x)).all()
+
+
+def series_type(series):
+    if is_numeric_series(series):
+        return 'Number'
+    else:
+        return 'Category'
 
 
 def standardize_df(df):
