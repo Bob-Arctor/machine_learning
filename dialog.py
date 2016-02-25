@@ -8,6 +8,7 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 import random
 import seaborn as sns
+import dataplot
 
 form_class = uic.loadUiType("main_window.ui")[0]  # Load the UI
 
@@ -45,25 +46,21 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
         self.plot_lay1.addWidget(self.canvas1)
         # button for plotting
         self.btn_plot.clicked.connect(self.plot_features)
+        # init of plot combo
+        self.fill_plot_combo()
+        #connecting combo with function
+        self.connect(self.plots_combo, QtCore.SIGNAL('activated(QString)'), self.fill_plot_table)
 
     def plot_features(self):
-        data = [random.random() for i in range(10)]
-        # ax = self.figure.add_subplot(111)
-        # discards the old graph
-        # ax.hold(False)
-        # plot data
-        # ax.plot(data, 'o-')
-        # refresh canvas
-        # self.canvas.draw()
         indexes = self.feature_table.selectionModel().selectedRows()
         if len(indexes) == 1 and self.observed_index >=0 :
             item = self.feature_table.item(indexes[0].row(), 1)
             ID = item.text()
             if ID == 'N': # numeric feature
+                sns.set_style("whitegrid")                
                 # for  numerics we plot histogram and boxplot
                 item = self.feature_table.item(indexes[0].row(), 0)
                 feat = item.text()
-                print(feat)
                 # making plot
                 self.figure1.clf()
                 subplot1 = self.figure1.add_subplot(111)
@@ -71,9 +68,6 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
                 #self.dataset.boxplot(column=feat, by = self.observed_name, ax=subplot1)
                 sns.boxplot(x=self.observed_name, y=feat, data=self.dataset, ax=subplot1, palette="PRGn")
                 sns.stripplot(x=self.observed_name, y=feat, data=self.dataset, jitter=True, edgecolor="gray",ax=subplot1)                
-                #subplot1.set(ylim=(self.dataset[feat].min(), self.dataset[feat].max()))                
-                #self.mw_1.draw()
-                #self.figure1.tight_layout()
                 self.canvas1.draw()
 
     def clicked_observed(self):
@@ -237,13 +231,80 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
     def repaint_feature_table(self):
         self.feature_table.setAlternatingRowColors(True)
         self.feature_table.setStyleSheet("alternate-background-color: lightGray;background-color: white;")
+    
+    #table with variables to plot, called when combo is changed    
+    def fill_plot_table(self, selected_plot):
+        # based on the plot type fill the table
+        rows = len(self.plot_types[selected_plot])
+        self.plot_table.setRowCount(rows)    
+        self.plot_table.setColumnCount(2)
+        #adding buttons
+        for index in range(rows):
+            self.btn_sell = QtGui.QPushButton(self.plot_types[selected_plot][index] + '=>')
+            self.btn_sell.clicked.connect(self.table_btn_clicked)
+            self.plot_table.setCellWidget(index,0,self.btn_sell)
+        self.plot_table.setHorizontalHeaderLabels(['','Variable'])
+    
+    # initialization ofplot combo        
+    def fill_plot_combo(self):
+        # filling combobox
+        self.plot_types = dataplot.dataplot.get_plot_types()
+        for key in self.plot_types.keys():
+            self.plots_combo.addItem(str(key))
+        #init of plot vars table
+        self.fill_plot_table(self.plots_combo.currentText())
         
+    def table_btn_clicked(self):
+        button = QtGui.qApp.focusWidget()
+        # or button = self.sender()
+        index = self.plot_table.indexAt(button.pos())
+        if index.isValid():
+           # print(index.row(), index.column()) 
+            #drop in selected item
+            indexes = self.feature_table.selectionModel().selectedRows()
+            print(indexes[0].row())
+            if len(indexes) == 1 :
+                item0 = self.feature_table.item(indexes[0].row(), 0)
+                item1 = self.feature_table.item(indexes[0].row(), 1)
+                feat = item0.text()
+                feat_type = item1.text()
+                item0 = QTableWidgetItem(feat)
+                item0.setFlags(QtCore.Qt.ItemIsEnabled)
+                item1 = QTableWidgetItem(feat_type)
+                item1.setFlags(QtCore.Qt.ItemIsEnabled)                
+                self.plot_table.setItem(index.row(), 1, item0)
+                self.plot_table.setItem(index.row(), 2, item1)
+                
     def slotItemClicked(self, row, col):
-        #item = self.feature_table.item(row, col)
-        #ID = item.text()
-        
+        item = self.feature_table.item(row, 0)
+        feature = item.text()
+        self.feature_stats_table.setColumnCount(2)
+        self.feature_stats_table.setRowCount(0)
+        self.feature_stats_table.setHorizontalHeaderLabels([feature,'stats'])
+        self.fill_feature_stats_table(self.feature_stats_table, self.dataset[feature], 0)
         #QMessageBox.information(self,"QTableWidget Cell Click","Row: " + str(row) + " |Column: " + str(col) + " text: " + ID)
         return
+        
+    def fill_feature_stats_table(self, table, df_col, rowPosition):
+        # type
+        col_type = prep.series_type(df_col)
+        if col_type == 'Number':
+            for i in range(5):
+                table.insertRow(rowPosition + i)
+            # fill in numeric stats
+            self.add_to_table(table, rowPosition, ['Type', col_type])
+            self.add_to_table(table, rowPosition + 1, ['Max', df_col.max()])
+            self.add_to_table(table, rowPosition + 2, ['Min', df_col.min()])
+            self.add_to_table(table, rowPosition + 3, ['Mean', df_col.mean()])
+            self.add_to_table(table, rowPosition + 4, ['Std', df_col.std()])
+        else:
+            for i in range(2):
+                table.insertRow(rowPosition + i)
+            # fill in character stats
+            self.add_to_table(table, rowPosition, ['Type', col_type])
+            classes = len(df_col.unique())
+            self.add_to_table(table, rowPosition + 1, ['Unique classes', classes])
+
 
 
 app = QtGui.QApplication(sys.argv)
