@@ -4,7 +4,7 @@ from PyQt4.QtGui import QFileDialog, QTableWidgetItem, QMessageBox
 import pandas as pd
 import Preproc as prep
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-#from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg as NavigationToolbar
+# from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg as NavigationToolbar
 import matplotlib.pyplot as plt
 import random
 import seaborn as sns
@@ -22,7 +22,7 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
         self.btn_load.clicked.connect(self.btn_load_clicked)  # Bind the event handlers
         self.btn_select_file.clicked.connect(self.selectFile)
         self.btn_set_observ.clicked.connect(self.clicked_observed)
-        self.feature_table.cellClicked.connect(self.slotItemClicked)
+        self.feature_table.cellClicked.connect(self.feature_clicked)
 
         self.filepath = ''
         self.dataset = pd.DataFrame()
@@ -37,51 +37,49 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
         self.char_complete_dataset = pd.DataFrame()
         self.char_missing_dataset = pd.DataFrame()
         self.observed_index = -1
-        #set stats to 0
+        # set stats to 0
         self.update_stats()
-        #create plots
-        # a figure instance to plot on
-        self.figure1 = plt.figure()
-        self.canvas1 = FigureCanvas(self.figure1)
-        self.plot_lay1.addWidget(self.canvas1)
+        # create canvas
+        self.canvas_plot = None
         # button for plotting
         self.btn_plot.clicked.connect(self.plot_features)
+        # creating dataplot object
+        self.dplot = dataplot.dataplot()
         # init of plot combo
         self.fill_plot_combo()
-        #connecting combo with function
+        # connecting combo with function
         self.connect(self.plots_combo, QtCore.SIGNAL('activated(QString)'), self.fill_plot_table)
 
     def plot_features(self):
-        indexes = self.feature_table.selectionModel().selectedRows()
-        if len(indexes) == 1 and self.observed_index >=0 :
-            item = self.feature_table.item(indexes[0].row(), 1)
-            ID = item.text()
-            if ID == 'N': # numeric feature
-                sns.set_style("whitegrid")                
-                # for  numerics we plot histogram and boxplot
-                item = self.feature_table.item(indexes[0].row(), 0)
-                feat = item.text()
-                # making plot
-                self.figure1.clf()
-                subplot1 = self.figure1.add_subplot(111)
-                #self.dataset.plot(kind="scatter", x=feat, y=feat, ax=subplot1)
-                #self.dataset.boxplot(column=feat, by = self.observed_name, ax=subplot1)
-                sns.boxplot(x=self.observed_name, y=feat, data=self.dataset, ax=subplot1, palette="PRGn")
-                sns.stripplot(x=self.observed_name, y=feat, data=self.dataset, jitter=True, edgecolor="gray",ax=subplot1)                
-                self.canvas1.draw()
+        variables = []
+        # reading vars from table
+        for row in range(self.plot_table.rowCount()):
+            variables.append(self.plot_table.item(row, 1).text())
+        # creating plot
+        try:    
+            self.dplot.make_plot(variables, self.dataset)
+            # passing plot to canvas
+            if self.canvas_plot is not None:
+                self.plot_lay1.removeWidget(self.canvas_plot)
+                self.canvas_plot.deleteLater()
+            self.canvas_plot = FigureCanvas(self.dplot.figure)
+            self.plot_lay1.addWidget(self.canvas_plot)
+            self.canvas_plot.draw()
+        except TypeError:
+            QMessageBox.information(self,"Could not plot: wrong data type")
 
     def clicked_observed(self):
         indexes = self.file_table.selectionModel().selectedColumns()
-        if len(indexes) == 1:      
+        if len(indexes) == 1:
             self.set_observed(indexes[0].column())
-            self.lbl_observed.setText(str(self.observed_name))            
+            self.lbl_observed.setText(str(self.observed_name))
 
     def set_observed(self, index):
         self.observed_dataset = self.dataset[self.dataset.columns[index]].to_frame()
         self.proc_dataset = self.dataset.drop(self.dataset.columns[[index]], axis=1)
         self.observed_index = index
-        self.observed_name = self.dataset.columns[index] 
-        self.observed_type = prep.series_type(self.observed_dataset.iloc[:,0])
+        self.observed_name = self.dataset.columns[index]
+        self.observed_type = prep.series_type(self.observed_dataset.iloc[:, 0])
         self.split_dataset()
         self.update_stats()
 
@@ -106,7 +104,7 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
             self.stats_table.setRowCount(7)
             # total samples
             self.add_to_table(self.stats_table, 0, ['Total samples', str(self.proc_dataset.shape[0])])
-            #total features
+            # total features
             self.add_to_table(self.stats_table, 1, ['Total features', str(self.proc_dataset.shape[1])])
             # complete samples            
             self.add_to_table(self.stats_table, 2, ['Complete samples', str(self.complete_dataset.shape[0])])
@@ -120,36 +118,22 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
             item = QTableWidgetItem('Observation:')
             item.setFlags(QtCore.Qt.ItemIsEnabled)
             self.stats_table.setItem(6, 0, item)
-            self.stats_table.item(6, 0).setBackground(QtGui.QColor(192,192,192))
+            self.stats_table.item(6, 0).setBackground(QtGui.QColor(192, 192, 192))
             # if observed has been set fill its stats
-            if self.observed_index >= 0 :
+            if self.observed_index >= 0:
                 rowPosition = self.stats_table.rowCount()
-                # type
-                if self.observed_type == 'Number':
-                    for i in range(5):
-                        self.stats_table.insertRow(rowPosition + i)
-                    # fill in numeric stats
-                    self.add_to_table(self.stats_table, rowPosition, ['Type', self.observed_type])
-                    self.add_to_table(self.stats_table, rowPosition + 1, ['Max', self.observed_dataset.meax()])
-                    self.add_to_table(self.stats_table, rowPosition + 2, ['Min', self.observed_dataset.min()])
-                    self.add_to_table(self.stats_table, rowPosition + 3, ['Mean', self.observed_dataset.mean()])
-                    self.add_to_table(self.stats_table, rowPosition + 4, ['Std', self.observed_dataset.std()])
-                else:
-                    for i in range(2):
-                        self.stats_table.insertRow(rowPosition + i)
-                    # fill in character stats
-                    self.add_to_table(self.stats_table, rowPosition, ['Type', self.observed_type])
-                    classes = len(self.observed_dataset.iloc[:,0].unique())
-                    self.add_to_table(self.stats_table, rowPosition + 1, ['Unique classes', classes])
+                # fill table
+                self.fill_feature_stats_table(self.stats_table, self.observed_dataset[self.observed_dataset.columns[0]], rowPosition)
+            #fill feature table on tab 2
             self.fill_feature_table()
-                 
-    def add_to_table(self, table, row, row_list, set_enabled=True, color=[255,255,255]):
+
+    def add_to_table(self, table, row, row_list, set_enabled=True, color=[255, 255, 255]):
         for col in range(len(row_list)):
             item = QTableWidgetItem(str(row_list[col]))
-            if set_enabled :
+            if set_enabled:
                 item.setFlags(QtCore.Qt.ItemIsEnabled)
             table.setItem(row, col, item)
-            table.item(row, col).setBackground(QtGui.QColor(color[0],color[1],color[2]))
+            table.item(row, col).setBackground(QtGui.QColor(color[0], color[1], color[2]))
 
     def btn_load_clicked(self):  # read csv file
         self.createProgressBar()
@@ -213,57 +197,60 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
             obs = 0
             if self.observed_index >= 0:
                 obs = 1
-                row_list = [self.observed_name, str(self.observed_type) + ' [Obs]']
-                self.add_to_table(self.feature_table, 0, row_list, False, [255,255,0])
+                row_list = [self.observed_name, str(self.observed_type) + ' [O]']
+                self.add_to_table(self.feature_table, 0, row_list, False, [255, 255, 0])
             # adding all other features
             for row in range(self.proc_dataset.shape[1]):
-                row_list = [str(self.proc_dataset.columns[row]), prep.series_type(self.proc_dataset[self.proc_dataset.columns[row]])[0:1]]                
-                self.add_to_table(self.feature_table, row+obs, row_list, False)                
-            # making cells read-only
+                row_list = [str(self.proc_dataset.columns[row]),
+                            prep.series_type(self.proc_dataset[self.proc_dataset.columns[row]])[0:1]]
+                self.add_to_table(self.feature_table, row + obs, row_list, False)
+                # making cells read-only
             self.feature_table.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
-            #making it only possible to select rows
+            # making it only possible to select rows
             self.feature_table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
             # setting header labels
-            self.feature_table.setHorizontalHeaderLabels(['Features','Type'])
+            self.feature_table.setHorizontalHeaderLabels(['Features', 'Type'])
             # update colorcodes
             # self.repaint_feature_table()
 
     def repaint_feature_table(self):
         self.feature_table.setAlternatingRowColors(True)
         self.feature_table.setStyleSheet("alternate-background-color: lightGray;background-color: white;")
-    
-    #table with variables to plot, called when combo is changed    
+
+    # table with variables to plot, called when combo is changed
     def fill_plot_table(self, selected_plot):
+        # set plot type to dataplot object
+        self.dplot.plt_type = selected_plot
         # based on the plot type fill the table
         rows = len(self.plot_types[selected_plot])
-        self.plot_table.setRowCount(rows)    
+        self.plot_table.setRowCount(rows)
         self.plot_table.setColumnCount(2)
-        #adding buttons
+        # adding buttons
         for index in range(rows):
             self.btn_sell = QtGui.QPushButton(self.plot_types[selected_plot][index] + '=>')
             self.btn_sell.clicked.connect(self.table_btn_clicked)
-            self.plot_table.setCellWidget(index,0,self.btn_sell)
-        self.plot_table.setHorizontalHeaderLabels(['','Variable'])
-    
-    # initialization ofplot combo        
+            self.plot_table.setCellWidget(index, 0, self.btn_sell)
+        self.plot_table.setHorizontalHeaderLabels(['', 'Variable'])
+
+    # initialization of plot combo        
     def fill_plot_combo(self):
         # filling combobox
-        self.plot_types = dataplot.dataplot.get_plot_types()
+        self.plot_types = self.dplot.get_plot_types()
         for key in self.plot_types.keys():
             self.plots_combo.addItem(str(key))
-        #init of plot vars table
+        # init of plot vars table
         self.fill_plot_table(self.plots_combo.currentText())
-        
+
     def table_btn_clicked(self):
         button = QtGui.qApp.focusWidget()
         # or button = self.sender()
         index = self.plot_table.indexAt(button.pos())
         if index.isValid():
-           # print(index.row(), index.column()) 
-            #drop in selected item
+            # print(index.row(), index.column())
+            # drop in selected item
             indexes = self.feature_table.selectionModel().selectedRows()
             print(indexes[0].row())
-            if len(indexes) == 1 :
+            if len(indexes) == 1:
                 item0 = self.feature_table.item(indexes[0].row(), 0)
                 item1 = self.feature_table.item(indexes[0].row(), 1)
                 feat = item0.text()
@@ -271,40 +258,40 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
                 item0 = QTableWidgetItem(feat)
                 item0.setFlags(QtCore.Qt.ItemIsEnabled)
                 item1 = QTableWidgetItem(feat_type)
-                item1.setFlags(QtCore.Qt.ItemIsEnabled)                
+                item1.setFlags(QtCore.Qt.ItemIsEnabled)
                 self.plot_table.setItem(index.row(), 1, item0)
                 self.plot_table.setItem(index.row(), 2, item1)
-                
-    def slotItemClicked(self, row, col):
+
+    def feature_clicked(self, row, col):
         item = self.feature_table.item(row, 0)
         feature = item.text()
         self.feature_stats_table.setColumnCount(2)
         self.feature_stats_table.setRowCount(0)
-        self.feature_stats_table.setHorizontalHeaderLabels([feature,'stats'])
+        self.feature_stats_table.setHorizontalHeaderLabels([feature, 'stats'])
         self.fill_feature_stats_table(self.feature_stats_table, self.dataset[feature], 0)
-        #QMessageBox.information(self,"QTableWidget Cell Click","Row: " + str(row) + " |Column: " + str(col) + " text: " + ID)
         return
-        
-    def fill_feature_stats_table(self, table, df_col, rowPosition):
+
+    def fill_feature_stats_table(self, table, df_col, row_position):
         # type
         col_type = prep.series_type(df_col)
         if col_type == 'Number':
-            for i in range(5):
-                table.insertRow(rowPosition + i)
+            for i in range(6):
+                table.insertRow(row_position + i)
             # fill in numeric stats
-            self.add_to_table(table, rowPosition, ['Type', col_type])
-            self.add_to_table(table, rowPosition + 1, ['Max', df_col.max()])
-            self.add_to_table(table, rowPosition + 2, ['Min', df_col.min()])
-            self.add_to_table(table, rowPosition + 3, ['Mean', df_col.mean()])
-            self.add_to_table(table, rowPosition + 4, ['Std', df_col.std()])
+            self.add_to_table(table, row_position, ['Type', col_type])
+            self.add_to_table(table, row_position + 1, ['Max', df_col.max()])
+            self.add_to_table(table, row_position + 2, ['Min', df_col.min()])
+            self.add_to_table(table, row_position + 3, ['Mean', df_col.mean()])
+            self.add_to_table(table, row_position + 4, ['Std', df_col.std()])
+            self.add_to_table(table, row_position + 5, ['NaNs', df_col.isnull().sum()])
         else:
-            for i in range(2):
-                table.insertRow(rowPosition + i)
+            for i in range(3):
+                table.insertRow(row_position + i)
             # fill in character stats
-            self.add_to_table(table, rowPosition, ['Type', col_type])
+            self.add_to_table(table, row_position, ['Type', col_type])
             classes = len(df_col.unique())
-            self.add_to_table(table, rowPosition + 1, ['Unique classes', classes])
-
+            self.add_to_table(table, row_position + 1, ['Unique classes', classes])
+            self.add_to_table(table, row_position + 2, ['NaNs', df_col.isnull().sum()])
 
 
 app = QtGui.QApplication(sys.argv)
