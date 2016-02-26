@@ -49,7 +49,7 @@ class NeuralNetwork:
         self.weights.append((2 * np.random.random((layers[i] + 1, layers[i + 1])) - 1) * 0.25)
 
     # Stochastic Gradient Decent training
-    def fit_sgd(self, X, y, learning_rate=0.2, epochs=10000):
+    def fit(self, X, y, learning_rate=0.2, epochs=10000, type='SGD'):
         '''
         :param X: input vector
         :param y: target
@@ -65,7 +65,7 @@ class NeuralNetwork:
         temp[:, 0:-1] = X  # adding the bias unit to the input layer
         X = temp
         y = np.array(y)
-
+        #repeat epochs times learning procedure
         for k in range(epochs):
             i = np.random.randint(X.shape[0])
             a = [X[i]]
@@ -82,3 +82,12 @@ class NeuralNetwork:
                 layer = np.atleast_2d(a[i])
                 delta = np.atleast_2d(deltas[i])
                 self.weights[i] += learning_rate * layer.T.dot(delta)
+
+    def predict(self, x):
+        x = np.array(x)
+        temp = np.ones(x.shape[0]+1)
+        temp[0:-1] = x
+        a = temp
+        for l in range(0, len(self.weights)):
+            a = self.activation(np.dot(a, self.weights[l]))
+        return a

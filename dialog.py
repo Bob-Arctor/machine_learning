@@ -53,8 +53,11 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
     def plot_features(self):
         variables = []
         # reading vars from table
-        for row in range(self.plot_table.rowCount()):
-            variables.append(self.plot_table.item(row, 1).text())
+        try:
+            for row in range(self.plot_table.rowCount()):
+                variables.append(self.plot_table.item(row, 1).text())
+        except AttributeError:
+            QMessageBox.information(self,"Could not plot: not enough data")        
         # creating plot
         try:    
             self.dplot.make_plot(variables, self.dataset)
@@ -249,7 +252,6 @@ class MyWindowClass(QtGui.QMainWindow, form_class):
             # print(index.row(), index.column())
             # drop in selected item
             indexes = self.feature_table.selectionModel().selectedRows()
-            print(indexes[0].row())
             if len(indexes) == 1:
                 item0 = self.feature_table.item(indexes[0].row(), 0)
                 item1 = self.feature_table.item(indexes[0].row(), 1)
